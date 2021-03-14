@@ -1,0 +1,36 @@
+{
+  "name": "@pallad/graphql-command-bus",
+  "version": "1.0.0",
+  "description": "",
+  "main": "compiled/index.js",
+  "scripts": {
+    "test": "pallad-scripts test",
+    "lint": "pallad-scripts lint",
+    "compile": "pallad-scripts compile",
+    "prepublishOnly": "npm run compile"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/wookieb/graphql-command-bus.git"
+  },
+  "keywords": [
+    "gql",
+    "graphql",
+    "command-bus"
+  ],
+  "author": "Łukasz Kużyński <lukasz.kuzynski@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/wookieb/graphql-command-bus/issues"
+  },
+  "homepage": "https://github.com/wookieb/graphql-command-bus#readme",
+  "devDependencies": {
+    "@pallad/scripts": "^1.2.4"
+  },
+  "dependencies": {
+    "alpha-command-bus-rpc-client": "^2.0.3",
+    "graphql-compose": "^7.25.0",
+    "monet": "^0.9.2",
+    "ts-essentials": "^7.0.1"
+  }
+}
