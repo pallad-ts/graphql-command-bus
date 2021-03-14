@@ -1,62 +1,48 @@
-import {Either} from "monet";
+import {Either, Validation} from "monet";
 import {ObjectTypeComposer, ResolverResolveParams} from "graphql-compose";
 import * as is from 'predicates';
 import {DataLoaderManager} from '@pallad/dataloader-manager';
 import {EntityHelper} from './EntityHelper';
-import {Command} from 'alpha-command-bus-core';
-import {MarkOptional} from 'ts-essentials';
+import {Command, CommandRunner} from 'alpha-command-bus-core';
 
-export class Mapper<TContext = any,
+export class Mapper<TContextOptions = any,
     TDataLoaderContext = any,
     TGQLContext extends Mapper.BasicGQLContext<TDataLoaderContext> = any> {
 
-    static DEFAULT_OPTIONS = {
-        resultHandler(result: Either<any, any>) {
-            if (result.isLeft()) {
-                throw result.left();
-            }
-            return result.right();
-        },
-    }
-
-    private options: Mapper.Options;
-
     constructor(
-        private commandBusHandler: Mapper.CommandBusHandler<Mapper.CommandBusHandler.Context<TContext, TGQLContext | TDataLoaderContext>>,
+        private commandBusHandler: CommandRunner<any, Mapper.ExecutionContext<TContextOptions, TGQLContext | TDataLoaderContext>>,
         private dataLoaderManager: DataLoaderManager,
-        options: Mapper.Options.FromUser
     ) {
-        this
-            .options = {
-            ...Mapper.DEFAULT_OPTIONS,
-            ...options
-        };
+
     }
 
-    async handleCommand(command: Command,
-                        context: TContext,
-                        gqlContext: TGQLContext | TDataLoaderContext,
-                        resultHandler?: Mapper.ResultHandler) {
-        const finalResultHandler = resultHandler || this.options.resultHandler;
+    async handleCommand<TExecutionContext extends Mapper.ExecutionContext<any, any>>(command: Command,
+                                                                                     executionContext: TExecutionContext,
+                                                                                     resultHandler?: Mapper.ResultHandler<TExecutionContext>) {
+        const result = (await Either.fromPromise(
+            this.commandBusHandler(command, executionContext)
+        )).toValidation();
 
-        const result = await Either.fromPromise(
-            this.commandBusHandler(command, {
-                context,
-                gqlContext
-            })
-        );
+        const finalResult = resultHandler ? await resultHandler(result, executionContext) : result;
 
-        return finalResultHandler(result);
+        if (finalResult.isFail()) {
+            throw finalResult.fail();
+        }
+        return finalResult.success();
     }
 
     createResolver<TArgs = any, TSource = any>(
-        options: Mapper.CreateResolverOptions<TContext, TGQLContext, TArgs, TSource>
+        options: Mapper.CreateResolverOptions<TContextOptions, TGQLContext, TArgs, TSource>
     ): Mapper.Resolver<TArgs, TSource, TGQLContext> {
         const func = async (source: TSource, args: TArgs, context: TGQLContext) => {
             const data = {source, args, context};
             const command = await options.commandFactory(data);
 
-            return this.handleCommand(command, options.context, context, options.resultHandler);
+            const executionContext: Mapper.ExecutionContext<TContextOptions, TGQLContext> = {
+                contextOptions: options.context!,
+                gqlContext: context
+            }
+            return this.handleCommand(command, executionContext, options.resultHandler);
         }
 
         func.rp = (rp: ResolverResolveParams<TSource, TGQLContext, TArgs>) => {
@@ -81,7 +67,7 @@ export class Mapper<TContext = any,
     }
 
     createEntityHelper<TEntity = any>(entityType: ObjectTypeComposer<TEntity, TGQLContext>):
-        EntityHelper<TEntity, TGQLContext, TContext, TDataLoaderContext> {
+        EntityHelper<TEntity, TContextOptions, TDataLoaderContext> {
         return new EntityHelper(
             entityType,
             this,
@@ -91,6 +77,10 @@ export class Mapper<TContext = any,
 }
 
 export namespace Mapper {
+    export interface ExecutionContext<TContextOptions, TGQLContext> {
+        contextOptions: TContextOptions;
+        gqlContext: TGQLContext;
+    }
 
     export type ResolverFunc<TArgs, TSource, TGQLContext> = (source: TSource, args: TArgs, context: TGQLContext) => Promise<any>
 
@@ -102,33 +92,23 @@ export namespace Mapper {
         dataLoaders: DataLoaderManager.Scope<TDataLoaderContext>
     }
 
-    export type CommandBusHandler<TContext extends CommandBusHandler.Context<any, any>> = (command: Command, context: TContext) => Promise<any>;
+    export type ResultHandler<TExecutionContext> = (result: Validation<any, any>, executionContext: TExecutionContext) => Validation<any, any> | Promise<Validation<any, any>>;
 
-    export namespace CommandBusHandler {
-        export interface Context<TOptions, TCommonGQLContext> {
-            context: TOptions;
-            gqlContext: TCommonGQLContext;
-        }
-    }
-
-    export interface Options {
-        resultHandler: ResultHandler;
-    }
-
-    export namespace Options {
-        export type FromUser = MarkOptional<Options, 'resultHandler'>;
-    }
-
-    export type ResultHandler = (result: Either<any, any>) => any | Promise<any>;
-
-    export interface CreateResolverOptions<TCommandBusContext extends {},
+    export type CreateResolverOptions<TContextOptions,
         TGQLContext,
         TArgs extends Record<string, any>,
         TSource = any,
-        > {
+        > = {
         commandFactory: (data: { args: TArgs, source: TSource, context: TGQLContext }) => Promise<Command> | Command,
-        resultHandler?: ResultHandler;
-        context: TCommandBusContext;
-    }
+        resultHandler?: ResultHandler<ExecutionContext<TContextOptions, TGQLContext>>;
+    } & (TContextOptions extends undefined ? { context?: NonNullable<TContextOptions> } : { context: TContextOptions })
 }
 
+
+const mapper = new Mapper<{ test: string } | undefined>({} as any, {} as any);
+
+mapper.createResolver({
+    commandFactory() {
+        return {} as any;
+    }
+})
