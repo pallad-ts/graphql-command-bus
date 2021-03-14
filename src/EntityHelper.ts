@@ -2,7 +2,6 @@ import {Mapper} from './Mapper';
 import {DataLoaderManager, DataLoader} from '@pallad/dataloader-manager';
 import {ObjectTypeComposer} from 'graphql-compose';
 import {ID} from '@pallad/id';
-import {AsyncOrSync} from 'ts-essentials';
 import {GraphQLID, GraphQLNonNull} from 'graphql';
 import {QueryHelper} from './QueryHelper';
 import {Command} from 'alpha-command-bus-core';
@@ -112,7 +111,7 @@ export namespace EntityHelper {
 
     export interface FindByIdResolverOptions<TResult = any, TKey = ID, TCommandBusContext = any, TDataLoaderContext = any> {
         dataLoaderName?: string;
-        commandFactory: (keys: TKey[], context: TDataLoaderContext) => AsyncOrSync<Command>;
+        commandFactory: (keys: TKey[], context: TDataLoaderContext) => Promise<Command> | Command;
         idExtractor?: IDExtractor<TResult, TKey>;
         resultHandler?: Mapper.ResultHandler;
         resultsExtractor?: ResultExtractor<TResult>;
@@ -120,7 +119,7 @@ export namespace EntityHelper {
     }
 
     export interface QueryResolverOptions<TQuery, TContext> extends QueryHelper.QueryOptions {
-        commandFactory: (query: TQuery) => AsyncOrSync<Command>;
+        commandFactory: (query: TQuery) => Promise<Command> | Command;
         context: TContext;
     }
 }

@@ -1,5 +1,5 @@
 import {Either} from "monet";
-import {AsyncOrSync, MarkOptional} from "ts-essentials";
+import {MarkOptional} from "ts-essentials";
 import {ObjectTypeComposer, ResolverResolveParams} from "graphql-compose";
 import * as is from 'predicates';
 import {DataLoaderManager} from '@pallad/dataloader-manager';
@@ -126,7 +126,7 @@ export namespace Mapper {
         TArgs extends Record<string, any>,
         TSource = any,
         > {
-        commandFactory: (data: { args: TArgs, source: TSource, context: TGQLContext }) => AsyncOrSync<Command>,
+        commandFactory: (data: { args: TArgs, source: TSource, context: TGQLContext }) => Promise<Command> | Command,
         resultHandler?: ResultHandler;
         context: TCommandBusContext;
     }
