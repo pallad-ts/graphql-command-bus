@@ -3,12 +3,12 @@ import {AsyncOrSync, MarkOptional} from "ts-essentials";
 import {ObjectTypeComposer, ResolverResolveParams} from "graphql-compose";
 import * as is from 'predicates';
 import {DataLoaderManager} from '@pallad/dataloader-manager';
-import {GraphqlEntityHelper} from './GraphqlEntityHelper';
+import {EntityHelper} from './EntityHelper';
 import {Command} from 'alpha-command-bus-core';
 
-export class GraphqlMapper<TContext = any,
+export class Mapper<TContext = any,
     TDataLoaderContext = any,
-    TGQLContext extends GraphqlMapper.BasicGQLContext<TDataLoaderContext> = any> {
+    TGQLContext extends Mapper.BasicGQLContext<TDataLoaderContext> = any> {
 
     static DEFAULT_OPTIONS = {
         resultHandler(result: Either<any, any>) {
@@ -19,16 +19,16 @@ export class GraphqlMapper<TContext = any,
         },
     }
 
-    private options: GraphqlMapper.Options;
+    private options: Mapper.Options;
 
     constructor(
-        private commandBusHandler: GraphqlMapper.CommandBusHandler<GraphqlMapper.CommandBusHandler.Context<TContext, TGQLContext | TDataLoaderContext>>,
+        private commandBusHandler: Mapper.CommandBusHandler<Mapper.CommandBusHandler.Context<TContext, TGQLContext | TDataLoaderContext>>,
         private dataLoaderManager: DataLoaderManager,
-        options: GraphqlMapper.Options.FromUser
+        options: Mapper.Options.FromUser
     ) {
         this
             .options = {
-            ...GraphqlMapper.DEFAULT_OPTIONS,
+            ...Mapper.DEFAULT_OPTIONS,
             ...options
         };
     }
@@ -36,7 +36,7 @@ export class GraphqlMapper<TContext = any,
     async handleCommand(command: Command,
                         context: TContext,
                         gqlContext: TGQLContext | TDataLoaderContext,
-                        resultHandler?: GraphqlMapper.ResultHandler) {
+                        resultHandler?: Mapper.ResultHandler) {
         const finalResultHandler = resultHandler || this.options.resultHandler;
 
         const result = await Either.fromPromise(
@@ -50,8 +50,8 @@ export class GraphqlMapper<TContext = any,
     }
 
     createResolver<TArgs = any, TSource = any>(
-        options: GraphqlMapper.CreateResolverOptions<TContext, TGQLContext, TArgs, TSource>
-    ): GraphqlMapper.Resolver<TArgs, TSource, TGQLContext> {
+        options: Mapper.CreateResolverOptions<TContext, TGQLContext, TArgs, TSource>
+    ): Mapper.Resolver<TArgs, TSource, TGQLContext> {
         const func = async (source: TSource, args: TArgs, context: TGQLContext) => {
             const data = {source, args, context};
             const command = await options.commandFactory(data);
@@ -81,8 +81,8 @@ export class GraphqlMapper<TContext = any,
     }
 
     createEntityHelper<TEntity = any>(entityType: ObjectTypeComposer<TEntity, TGQLContext>):
-        GraphqlEntityHelper<TEntity, TGQLContext, TContext, TDataLoaderContext> {
-        return new GraphqlEntityHelper(
+        EntityHelper<TEntity, TGQLContext, TContext, TDataLoaderContext> {
+        return new EntityHelper(
             entityType,
             this,
             this.dataLoaderManager
@@ -90,7 +90,7 @@ export class GraphqlMapper<TContext = any,
     }
 }
 
-export namespace GraphqlMapper {
+export namespace Mapper {
 
     export type ResolverFunc<TArgs, TSource, TGQLContext> = (source: TSource, args: TArgs, context: TGQLContext) => Promise<any>
 

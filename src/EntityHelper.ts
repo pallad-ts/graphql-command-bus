@@ -1,28 +1,28 @@
-import {GraphqlMapper} from './GraphqlMapper';
+import {Mapper} from './Mapper';
 import {DataLoaderManager, DataLoader} from '@pallad/dataloader-manager';
 import {ObjectTypeComposer} from 'graphql-compose';
 import {ID} from '@pallad/id';
 import {AsyncOrSync} from 'ts-essentials';
 import {GraphQLID, GraphQLNonNull} from 'graphql';
-import {GraphqlQueryHelper} from './GraphqlQueryHelper';
+import {QueryHelper} from './QueryHelper';
 import {Command} from 'alpha-command-bus-core';
 
-export class GraphqlEntityHelper<TEntity,
-    TGQLContext extends GraphqlMapper.BasicGQLContext<TDataLoaderContext> = any,
+export class EntityHelper<TEntity,
+    TGQLContext extends Mapper.BasicGQLContext<TDataLoaderContext> = any,
     TCommandBusContext = any,
     TDataLoaderContext = any> {
 
     constructor(private entityType: ObjectTypeComposer<TEntity, TGQLContext>,
-                private mapper: GraphqlMapper,
+                private mapper: Mapper,
                 private dataLoaderManager: DataLoaderManager
     ) {
     }
 
-    static DEFAULT_ID_EXTRACTOR: GraphqlEntityHelper.IDExtractor = (result) => {
+    static DEFAULT_ID_EXTRACTOR: EntityHelper.IDExtractor =result => {
         return result.id;
     };
 
-    static DEFAULT_RESULT_EXTRACTOR: GraphqlEntityHelper.ResultExtractor = (result) => {
+    static DEFAULT_RESULT_EXTRACTOR: EntityHelper.ResultExtractor =result => {
         if (result === null || result === undefined) {
             return [];
         }
@@ -38,7 +38,7 @@ export class GraphqlEntityHelper<TEntity,
         throw new Error('Could not extract array results');
     }
 
-    createFindByIdResolver<TResult = any, TKey = ID>(options: GraphqlEntityHelper.FindByIdResolverOptions<TResult, TKey, TCommandBusContext, TDataLoaderContext>) {
+    createFindByIdResolver<TResult = any, TKey = ID>(options: EntityHelper.FindByIdResolverOptions<TResult, TKey, TCommandBusContext, TDataLoaderContext>) {
         const dataLoaderName = options.dataLoaderName || this.entityType.getTypeName() + '.findById';
 
         const dataLoaderFactory = (context: TDataLoaderContext) => {
@@ -47,14 +47,14 @@ export class GraphqlEntityHelper<TEntity,
 
                 const result = await this.mapper.handleCommand(command, options.context, context, options.resultHandler);
 
-                const arrayExtractor = options.resultsExtractor || GraphqlEntityHelper.DEFAULT_RESULT_EXTRACTOR;
+                const arrayExtractor = options.resultsExtractor || EntityHelper.DEFAULT_RESULT_EXTRACTOR;
                 const finalResult = arrayExtractor(result);
 
                 if (!Array.isArray(finalResult)) {
                     return [];
                 }
 
-                const idExtractor = options.idExtractor || GraphqlEntityHelper.DEFAULT_ID_EXTRACTOR;
+                const idExtractor = options.idExtractor || EntityHelper.DEFAULT_ID_EXTRACTOR;
                 const resultMap = new Map();
                 for (const entry of finalResult) {
                     finalResult && resultMap.set(idExtractor(entry), entry);
@@ -84,13 +84,13 @@ export class GraphqlEntityHelper<TEntity,
         return this.entityType.getResolver('findById');
     }
 
-    createQueryResolver<TQuery>(options: GraphqlEntityHelper.QueryResolverOptions<any, TCommandBusContext>) {
+    createQueryResolver<TQuery>(options: EntityHelper.QueryResolverOptions<any, TCommandBusContext>) {
         this.entityType.addResolver({
             name: 'query',
             args: {
-                query: GraphqlQueryHelper.createQueryType(options)
+                query: QueryHelper.createQueryType(options)
             },
-            type: GraphqlQueryHelper.createQueryResultType(this.entityType),
+            type: QueryHelper.createQueryResultType(this.entityType),
             resolve: this.mapper.createResolver<{ query: TQuery }, TEntity>({
                 commandFactory: options.commandFactory,
                 context: options.context
@@ -106,7 +106,7 @@ export class GraphqlEntityHelper<TEntity,
 }
 
 
-export namespace GraphqlEntityHelper {
+export namespace EntityHelper {
     export type IDExtractor<TResult = any, TKey = ID> = (result: TResult) => TKey;
     export type ResultExtractor<TResult = any> = (result: any) => TResult[];
 
@@ -114,12 +114,12 @@ export namespace GraphqlEntityHelper {
         dataLoaderName?: string;
         commandFactory: (keys: TKey[], context: TDataLoaderContext) => AsyncOrSync<Command>;
         idExtractor?: IDExtractor<TResult, TKey>;
-        resultHandler?: GraphqlMapper.ResultHandler;
+        resultHandler?: Mapper.ResultHandler;
         resultsExtractor?: ResultExtractor<TResult>;
         context: TCommandBusContext;
     }
 
-    export interface QueryResolverOptions<TQuery, TContext> extends GraphqlQueryHelper.QueryOptions {
+    export interface QueryResolverOptions<TQuery, TContext> extends QueryHelper.QueryOptions {
         commandFactory: (query: TQuery) => AsyncOrSync<Command>;
         context: TContext;
     }

@@ -35,7 +35,7 @@ function createSortByType(prefix: string, fields: string[]) {
     );
 }
 
-export namespace GraphqlQueryHelper {
+export namespace QueryHelper {
     export function createQueryType(options: QueryOptions) {
 
         const prefix = options.filters.name
