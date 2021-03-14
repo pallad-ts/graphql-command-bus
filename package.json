@@ -14,6 +14,9 @@
     "type": "git",
     "url": "git+https://github.com/wookieb/graphql-command-bus.git"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "gql",
     "graphql",
