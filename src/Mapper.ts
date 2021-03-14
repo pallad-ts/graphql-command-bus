@@ -1,5 +1,4 @@
 import {Either} from "monet";
-import {MarkOptional} from "ts-essentials";
 import {ObjectTypeComposer, ResolverResolveParams} from "graphql-compose";
 import * as is from 'predicates';
 import {DataLoaderManager} from '@pallad/dataloader-manager';
