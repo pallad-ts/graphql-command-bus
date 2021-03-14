@@ -4,6 +4,7 @@ import * as is from 'predicates';
 import {DataLoaderManager} from '@pallad/dataloader-manager';
 import {EntityHelper} from './EntityHelper';
 import {Command} from 'alpha-command-bus-core';
+import {MarkOptional} from 'ts-essentials';
 
 export class Mapper<TContext = any,
     TDataLoaderContext = any,
