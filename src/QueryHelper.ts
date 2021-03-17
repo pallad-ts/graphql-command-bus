@@ -51,9 +51,9 @@ export namespace QueryHelper {
         }
         if (options.pagination) {
             fields.limit = {type: GraphQLInt};
-            if ('byLimit' in options.pagination) {
+            if ('byOffset' in options.pagination) {
                 fields.offset = {type: GraphQLInt};
-            } else if ('byOffset' in options.pagination) {
+            } else if ('byNode' in options.pagination) {
                 fields.after = {type: GraphQLString};
                 fields.before = {type: GraphQLString}
             }
@@ -74,7 +74,7 @@ export namespace QueryHelper {
         });
     }
 
-    export type PaginationOptions = { byLimit: true } | { byOffset: true };
+    export type PaginationOptions = { byNode: true } | { byOffset: true };
 
     export interface QueryOptions {
         filters: GraphQLInputObjectType,
