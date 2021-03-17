@@ -95,7 +95,9 @@ export class EntityHelper<TEntity,
             },
             type: QueryHelper.createQueryResultType(this.entityType),
             resolve: this.mapper.createResolver<{ query: TQuery }, TEntity>({
-                commandFactory: options.commandFactory,
+                commandFactory: ({args}) => {
+                    return options.commandFactory(args.query);
+                },
                 context: options.context
             }).rp
         });
