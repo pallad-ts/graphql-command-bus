@@ -7,21 +7,20 @@ import {QueryHelper} from './QueryHelper';
 import {Command} from 'alpha-command-bus-core';
 
 export class EntityHelper<TEntity,
-    TGQLContext extends Mapper.BasicGQLContext<TDataLoaderContext> = any,
-    TCommandBusContext = any,
+    TContextOptions = any,
     TDataLoaderContext = any> {
 
-    constructor(private entityType: ObjectTypeComposer<TEntity, TGQLContext>,
+    constructor(private entityType: ObjectTypeComposer<TEntity, any>,
                 private mapper: Mapper,
                 private dataLoaderManager: DataLoaderManager
     ) {
     }
 
-    static DEFAULT_ID_EXTRACTOR: EntityHelper.IDExtractor =result => {
+    static DEFAULT_ID_EXTRACTOR: EntityHelper.IDExtractor = result => {
         return result.id;
     };
 
-    static DEFAULT_RESULT_EXTRACTOR: EntityHelper.ResultExtractor =result => {
+    static DEFAULT_RESULT_EXTRACTOR: EntityHelper.ResultExtractor = result => {
         if (result === null || result === undefined) {
             return [];
         }
@@ -37,14 +36,19 @@ export class EntityHelper<TEntity,
         throw new Error('Could not extract array results');
     }
 
-    createFindByIdResolver<TResult = any, TKey = ID>(options: EntityHelper.FindByIdResolverOptions<TResult, TKey, TCommandBusContext, TDataLoaderContext>) {
+    createFindByIdResolver<TResult = any, TKey = ID>(options: EntityHelper.FindByIdResolverOptions<TResult, TKey, TContextOptions, TDataLoaderContext>) {
         const dataLoaderName = options.dataLoaderName || this.entityType.getTypeName() + '.findById';
 
         const dataLoaderFactory = (context: TDataLoaderContext) => {
             return new DataLoader<TKey, TResult>(async keys => {
                 const command = await options.commandFactory(keys.slice(), context);
 
-                const result = await this.mapper.handleCommand(command, options.context, context, options.resultHandler);
+                const executionContext: Mapper.ExecutionContext<TContextOptions, any> = {
+                    contextOptions: options.context!,
+                    gqlContext: context
+                };
+
+                const result = await this.mapper.handleCommand(command, executionContext, options.resultHandler);
 
                 const arrayExtractor = options.resultsExtractor || EntityHelper.DEFAULT_RESULT_EXTRACTOR;
                 const finalResult = arrayExtractor(result);
@@ -83,7 +87,7 @@ export class EntityHelper<TEntity,
         return this.entityType.getResolver('findById');
     }
 
-    createQueryResolver<TQuery>(options: EntityHelper.QueryResolverOptions<any, TCommandBusContext>) {
+    createQueryResolver<TQuery>(options: EntityHelper.QueryResolverOptions<any, TContextOptions>) {
         this.entityType.addResolver({
             name: 'query',
             args: {
@@ -109,14 +113,13 @@ export namespace EntityHelper {
     export type IDExtractor<TResult = any, TKey = ID> = (result: TResult) => TKey;
     export type ResultExtractor<TResult = any> = (result: any) => TResult[];
 
-    export interface FindByIdResolverOptions<TResult = any, TKey = ID, TCommandBusContext = any, TDataLoaderContext = any> {
+    export type FindByIdResolverOptions<TResult, TKey, TContextOptions, TDataLoaderContext> = {
         dataLoaderName?: string;
         commandFactory: (keys: TKey[], context: TDataLoaderContext) => Promise<Command> | Command;
         idExtractor?: IDExtractor<TResult, TKey>;
-        resultHandler?: Mapper.ResultHandler;
+        resultHandler?: Mapper.ResultHandler<Mapper.ExecutionContext<TContextOptions, TDataLoaderContext>>;
         resultsExtractor?: ResultExtractor<TResult>;
-        context: TCommandBusContext;
-    }
+    } & (TContextOptions extends undefined ? { context?: NonNullable<TContextOptions> } : { context: TContextOptions })
 
     export interface QueryResolverOptions<TQuery, TContext> extends QueryHelper.QueryOptions {
         commandFactory: (query: TQuery) => Promise<Command> | Command;
