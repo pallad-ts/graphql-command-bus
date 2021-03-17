@@ -5,6 +5,7 @@ import {ID} from '@pallad/id';
 import {GraphQLID, GraphQLNonNull} from 'graphql';
 import {QueryHelper} from './QueryHelper';
 import {Command} from 'alpha-command-bus-core';
+import {Query} from '@pallad/query';
 
 export class EntityHelper<TEntity,
     TContextOptions = any,
@@ -87,7 +88,7 @@ export class EntityHelper<TEntity,
         return this.entityType.getResolver('findById');
     }
 
-    createQueryResolver<TQuery>(options: EntityHelper.QueryResolverOptions<any, TContextOptions>) {
+    createQueryResolver<TQuery extends Query<any>>(options: EntityHelper.QueryResolverOptions<any, TContextOptions>) {
         this.entityType.addResolver({
             name: 'query',
             args: {
@@ -96,7 +97,11 @@ export class EntityHelper<TEntity,
             type: QueryHelper.createQueryResultType(this.entityType),
             resolve: this.mapper.createResolver<{ query: TQuery }, TEntity>({
                 commandFactory: ({args}) => {
-                    return options.commandFactory(args.query);
+                    const query: any = {
+                        filters: args.query?.filters || {},
+                    };
+
+                    return options.commandFactory(query);
                 },
                 context: options.context
             }).rp
