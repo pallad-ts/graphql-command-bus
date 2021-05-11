@@ -98,6 +98,7 @@ export class EntityHelper<TEntity,
             resolve: this.mapper.createResolver<{ query: TQuery }, TEntity>({
                 commandFactory: ({args}) => {
                     const query: any = {
+                        ...(args.query || {}),
                         filters: args.query?.filters || {},
                     };
 
