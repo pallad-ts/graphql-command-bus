@@ -94,7 +94,7 @@ export class EntityHelper<TEntity,
             args: {
                 query: QueryHelper.createQueryType(options)
             },
-            type: QueryHelper.createQueryResultType(this.entityType),
+            type: QueryHelper.createQueryResultType(this.entityType, options.pagination),
             resolve: this.mapper.createResolver<{ query: TQuery }, TEntity>({
                 commandFactory: ({args}) => {
                     const query: any = {
