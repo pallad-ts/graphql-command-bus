@@ -1,6 +1,7 @@
 import {GraphQLInputObjectType, Thunk, GraphQLNonNull, GraphQLList, GraphQLEnumType, GraphQLInt, GraphQLString, GraphQLObjectType} from 'graphql';
 import {GraphQLInputFieldConfigMap} from 'graphql/type/definition';
 import {ObjectTypeComposer} from 'graphql-compose';
+import {QueryResultMetaPaginationByNode, QueryResultMetaPaginationByOffset} from './GQL';
 
 
 const SORT_DIRECTION = new GraphQLEnumType({
@@ -65,11 +66,13 @@ export namespace QueryHelper {
         });
     }
 
-    export function createQueryResultType(type: ObjectTypeComposer<any>) {
+    export function createQueryResultType(type: ObjectTypeComposer<any>, pagination?: PaginationOptions) {
+        const metaType = getMetaTypeForPaginationOptions(pagination);
         return new GraphQLObjectType({
             name: type.getTypeName() + '_Query_Result',
             fields: {
-                results: {type: type.getTypePlural().getType()}
+                results: {type: type.getTypePlural().getType()},
+                ...(metaType ? {meta: {type: metaType}} : {})
             }
         });
     }
@@ -83,4 +86,17 @@ export namespace QueryHelper {
     }
 }
 
+function getMetaTypeForPaginationOptions(pagination?: QueryHelper.PaginationOptions) {
+    if (!pagination) {
+        return;
+    }
+
+    if ('byNode' in pagination && pagination.byNode) {
+        return QueryResultMetaPaginationByNode;
+    }
+
+    if ('byOffset' in pagination && pagination.byOffset) {
+        return QueryResultMetaPaginationByOffset;
+    }
+}
 
