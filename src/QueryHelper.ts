@@ -16,24 +16,22 @@ const SORT_DIRECTION = new GraphQLEnumType({
     }
 });
 
-function createSortByType(prefix: string, fields: string[]) {
-    return new GraphQLList(
-        new GraphQLInputObjectType({
-            name: prefix + '_Query_Sort',
-            fields: {
-                direction: {type: SORT_DIRECTION},
-                field: {
-                    type: new GraphQLEnumType({
-                        name: prefix + '_Query_Sort_Field',
-                        values: fields.reduce((result, field) => {
-                            result[field] = {value: field};
-                            return result;
-                        }, {} as any)
-                    })
-                }
+function createSortByDefinitionType(prefix: string, fields: string[]) {
+    return new GraphQLInputObjectType({
+        name: prefix + '_Query_Sort',
+        fields: {
+            direction: {type: SORT_DIRECTION},
+            field: {
+                type: new GraphQLEnumType({
+                    name: prefix + '_Query_Sort_Field',
+                    values: fields.reduce((result, field) => {
+                        result[field] = {value: field};
+                        return result;
+                    }, {} as any)
+                })
             }
-        })
-    );
+        }
+    })
 }
 
 export namespace QueryHelper {
@@ -48,7 +46,12 @@ export namespace QueryHelper {
         };
 
         if (options.sortableFields) {
-            fields.sortBy = {type: createSortByType(prefix, options.sortableFields)};
+            fields.sortBy = {
+                type:
+                    options.singleSortable ?
+                        createSortByDefinitionType(prefix, options.sortableFields) :
+                        new GraphQLList(createSortByDefinitionType(prefix, options.sortableFields))
+            };
         }
         if (options.pagination) {
             fields.limit = {type: GraphQLInt};
@@ -82,6 +85,7 @@ export namespace QueryHelper {
     export interface QueryOptions {
         filters: GraphQLInputObjectType,
         sortableFields?: string[],
+        singleSortable?: boolean;
         pagination?: PaginationOptions
     }
 }

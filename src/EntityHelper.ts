@@ -6,6 +6,7 @@ import {GraphQLID, GraphQLNonNull} from 'graphql';
 import {QueryHelper} from './QueryHelper';
 import {Command} from 'alpha-command-bus-core';
 import {Query} from '@pallad/query';
+import {GraphQLFieldConfigMap, Thunk} from 'graphql/type/definition';
 
 export class EntityHelper<TEntity,
     TContextOptions = any,
