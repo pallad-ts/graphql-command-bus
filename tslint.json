@@ -1,9 +1,0 @@
-{
-  "extends": "@pallad/scripts/tslint.dist.json",
-  "rules": {
-    "await-promise": [
-      true,
-      "PromiseLike"
-    ]
-  }
-}
